@@ -31,7 +31,7 @@ A scalable gaming analytics platform that leverages **distributed computing with
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repo-link>
+git clone https://github.com/Ananyo-Sen-B2530066/distributed-gaming-analytics.git
 cd gaming_analytics
 ```
 
