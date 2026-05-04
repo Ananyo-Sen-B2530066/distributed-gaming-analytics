@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Counter Strike Analytics — Results</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0c0f;
+      color: #c8d0d8;
+      font-family: 'Rajdhani', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: clamp(1.25rem, 4vw, 3rem) clamp(1rem, 5vw, 2.5rem);
+    }
+
+    .container { width: 100%; max-width: 1100px; }
+
+    /* ── Header ── */
+    .header {
+      display: flex; align-items: center;
+      gap: clamp(10px, 2vw, 18px);
+      margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+      border-bottom: 1px solid #1e2a38;
+      padding-bottom: clamp(1rem, 2.5vw, 1.5rem);
+    }
+    .logo-hex {
+      width: clamp(36px, 5vw, 52px); height: clamp(36px, 5vw, 52px);
+      background: #e8a020;
+      clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .logo-hex svg { width: 55%; height: 55%; }
+    .header-title {
+      font-size: clamp(18px, 3vw, 28px);
+      font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #e8e8e8;
+    }
+    .header-sub {
+      font-size: clamp(9px, 1.2vw, 12px);
+      color: #e8a020; letter-spacing: 3px; text-transform: uppercase;
+      font-family: 'Share Tech Mono', monospace; margin-top: 3px;
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: clamp(9px, 1.1vw, 11px);
+      letter-spacing: 3px; text-transform: uppercase;
+      color: #e8a020; font-family: 'Share Tech Mono', monospace;
+      margin-bottom: 10px; margin-top: 1.25rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: #1e2a38; }
+    .section-label:first-child { margin-top: 0; }
+
+    /* ── Results grid: auto-fit cards for multi-player ── */
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
+      gap: clamp(12px, 2vw, 20px);
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Result card ── */
+    .result-card {
+      background: #0e1318; border: 1px solid #1e2a38;
+      border-radius: 2px; padding: clamp(16px, 2.5vw, 22px);
+      position: relative; overflow: hidden;
+    }
+    .result-card::before {
+      content: ''; position: absolute;
+      left: 0; top: 0; bottom: 0; width: 3px;
+    }
+    .card-predict::before { background: #e8a020; }
+    .card-above::before   { background: #4caf50; }
+    .card-below::before   { background: #e84040; }
+
+    /* ── Player row ── */
+    .player-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .player-avatar {
+      width: clamp(34px, 4vw, 44px); height: clamp(34px, 4vw, 44px);
+      background: #1e2a38; display: flex; align-items: center; justify-content: center;
+      font-size: clamp(11px, 1.4vw, 14px); font-weight: 700; color: #e8a020;
+      letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0;
+      clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+    }
+    .player-name {
+      font-size: clamp(15px, 2.2vw, 20px);
+      font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #e8e8e8;
+    }
+    .mode-tag {
+      font-size: 9px; padding: 2px 7px; border-radius: 2px;
+      margin-left: 8px; letter-spacing: 1px;
+      font-family: 'Share Tech Mono', monospace; vertical-align: middle;
+    }
+    .tag-ml   { background: #1a2a1a; color: #4caf50; border: 1px solid #2a4a2a; }
+    .tag-stat { background: #1a1a2a; color: #5c8af5; border: 1px solid #2a2a4a; }
+
+    /* ── Stat boxes: auto-fit within card ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 8px; margin-bottom: 14px;
+    }
+    .stat-box {
+      background: #080c10; border: 1px solid #1e2a38;
+      border-radius: 2px; padding: clamp(10px, 1.5vw, 14px); text-align: center;
+    }
+    .stat-val {
+      font-size: clamp(20px, 3vw, 28px);
+      font-weight: 700; font-family: 'Share Tech Mono', monospace; line-height: 1;
+    }
+    .stat-val.small { font-size: clamp(11px, 1.4vw, 14px); padding-top: 6px; }
+    .val-gold  { color: #e8a020; }
+    .val-green { color: #4caf50; }
+    .val-red   { color: #e84040; }
+    .val-blue  { color: #5c8af5; }
+    .val-muted { color: #c8d0d8; }
+    .stat-label {
+      font-size: clamp(8px, 1vw, 10px);
+      letter-spacing: 2px; text-transform: uppercase;
+      color: #7a8a9a; margin-top: 5px; font-family: 'Share Tech Mono', monospace;
+    }
+
+    /* ── Predict interpretation banner ── */
+    .interpret-banner {
+      background: #080c10; border: 1px solid #2a3a1a;
+      border-radius: 2px; padding: 10px 14px;
+      font-size: clamp(11px, 1.3vw, 13px); color: #a8c890;
+      font-family: 'Share Tech Mono', monospace; letter-spacing: 0.5px;
+    }
+
+    /* ── Performance banner ── */
+    .perf-banner {
+      display: flex; align-items: center; gap: 10px;
+      padding: clamp(8px, 1.5vw, 12px) 14px;
+      border-radius: 2px; border: 1px solid; margin-bottom: 14px;
+    }
+    .perf-banner.above { background: #0d1f0d; border-color: #2a4a2a; }
+    .perf-banner.below { background: #1f0d0d; border-color: #4a2a2a; }
+    .perf-icon {
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .perf-icon.above { background: #4caf50; color: #0a0c0f; }
+    .perf-icon.below { background: #e84040; color: #fff; }
+    .perf-text-wrap { display: flex; flex-direction: column; gap: 2px; }
+    .perf-text {
+      font-size: clamp(11px, 1.3vw, 13px);
+      letter-spacing: 1px; text-transform: uppercase;
+      font-family: 'Share Tech Mono', monospace; font-weight: 700;
+    }
+    .perf-text.above { color: #4caf50; }
+    .perf-text.below { color: #e84040; }
+    .perf-message {
+      font-size: clamp(10px, 1.1vw, 12px);
+      color: #7a8a9a; font-family: 'Share Tech Mono', monospace;
+    }
+
+    /* ── Tag rows (strong/weak) ── */
+    .breakdown-title {
+      font-size: clamp(9px, 1.1vw, 11px);
+      letter-spacing: 2px; text-transform: uppercase;
+      color: #5a6a7a; font-family: 'Share Tech Mono', monospace; margin-bottom: 8px;
+    }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .stat-tag {
+      font-size: clamp(9px, 1.1vw, 11px); padding: 3px 9px; border-radius: 2px;
+      font-family: 'Share Tech Mono', monospace; letter-spacing: 1px;
+    }
+    .stat-tag.strong { background: #0d1f0d; color: #4caf50; border: 1px solid #2a4a2a; }
+    .stat-tag.weak   { background: #1f0d0d; color: #e84040; border: 1px solid #4a2a2a; }
+
+    /* ── Metric breakdown ── */
+    .metric-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: clamp(6px, 1vw, 9px) 10px;
+      border-radius: 2px; margin-bottom: 5px;
+      background: #080c10; border: 1px solid #1a2430;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: clamp(11px, 1.3vw, 13px);
+    }
+    .metric-left { display: flex; align-items: center; gap: 8px; }
+    .metric-arrow { font-size: 13px; width: 14px; text-align: center; flex-shrink: 0; }
+    .metric-arrow.up   { color: #4caf50; }
+    .metric-arrow.down { color: #e84040; }
+    .metric-arrow.neu  { color: #7a8a9a; }
+    .metric-name { color: #c8d0d8; letter-spacing: 1px; }
+    .metric-inverse-tag {
+      font-size: 8px; padding: 1px 5px; border-radius: 2px;
+      background: #1a1a2a; color: #5c8af5; border: 1px solid #2a2a4a;
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+    .metric-right { display: flex; align-items: center; gap: 12px; }
+    .metric-player { font-weight: 700; color: #e8e8e8; }
+    .metric-avg { font-size: clamp(9px, 1vw, 11px); color: #5a6a7a; }
+
+    /* ── Analyze inner layout: on wide screens, breakdown | chart side by side ── */
+    .analyze-body {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: clamp(10px, 2vw, 18px);
+    }
+    @media (min-width: 800px) {
+      .analyze-body {
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+      }
+    }
+
+    /* ── Chart ── */
+    .chart-wrap {
+      background: #080c10; border: 1px solid #1e2a38;
+      border-radius: 2px; padding: 14px;
+    }
+
+    /* ── Improvement tips ── */
+    .tip-row {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: clamp(6px, 1vw, 9px) 10px; border-radius: 2px; margin-bottom: 6px;
+      background: #080c10; border: 1px solid #1a2430;
+    }
+    .tip-bullet { color: #e8a020; font-size: 11px; margin-top: 1px; flex-shrink: 0; }
+    .tip-text {
+      font-size: clamp(11px, 1.3vw, 13px);
+      color: #a8b8c8; font-family: 'Share Tech Mono', monospace; line-height: 1.5;
+    }
+
+    /* ── Error card ── */
+    .error-card {
+      background: #1f0d0d; border: 1px solid #4a2a2a;
+      border-radius: 2px; padding: 14px 16px; margin-bottom: 14px;
+    }
+    .error-label {
+      font-size: 10px; color: #e84040; letter-spacing: 2px;
+      font-family: 'Share Tech Mono', monospace; text-transform: uppercase; margin-bottom: 4px;
+    }
+    .error-msg { font-size: 13px; color: #c8d0d8; font-family: 'Share Tech Mono', monospace; }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: #1e2a38; margin: 14px 0; }
+
+    /* ── Back button ── */
+    .back-btn {
+      display: inline-block; margin-top: 1.5rem;
+      background: transparent; border: 1px solid #1e2a38;
+      color: #7a8a9a; font-family: 'Rajdhani', sans-serif;
+      font-size: clamp(11px, 1.4vw, 14px); font-weight: 600;
+      letter-spacing: 2px; text-transform: uppercase;
+      padding: 10px 22px; text-decoration: none;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .back-btn:hover { border-color: #e8a020; color: #e8a020; }
+
+    /* ── Footer ── */
+    .footer-line {
+      margin-top: clamp(1.5rem, 3vw, 2.5rem);
+      border-top: 1px solid #1e2a38; padding-top: 1rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .footer-line span {
+      font-size: clamp(9px, 1vw, 11px);
+      font-family: 'Share Tech Mono', monospace; color: #3a4a5a; letter-spacing: 1px;
+    }
+    .status-dot {
+      display: inline-block; width: 6px; height: 6px;
+      background: #4caf50; border-radius: 50%; margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="logo-hex">
+      <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="11" cy="11" r="8" stroke="#0a0c0f" stroke-width="1.5"/>
+        <line x1="11" y1="3"  x2="11" y2="7"  stroke="#0a0c0f" stroke-width="2" stroke-linecap="round"/>
+        <line x1="11" y1="15" x2="11" y2="19" stroke="#0a0c0f" stroke-width="2" stroke-linecap="round"/>
+        <line x1="3"  y1="11" x2="7"  y2="11" stroke="#0a0c0f" stroke-width="2" stroke-linecap="round"/>
+        <line x1="15" y1="11" x2="19" y2="11" stroke="#0a0c0f" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="11" cy="11" r="2" fill="#0a0c0f"/>
+      </svg>
+    </div>
+    <div>
+      <div class="header-title">Analysis Results</div>
+      <div class="header-sub">Match Performance Report</div>
+    </div>
+  </div>
+
+  <div class="section-label">Results</div>
+
+  <div class="results-grid">
+  {% for r in results %}
+
+    {% if r.error %}
+      <div class="error-card">
+        <div class="error-label">Error — {{ r.player or "Unknown Player" }}</div>
+        <div class="error-msg">{{ r.error }}</div>
+      </div>
+
+    {% elif r.predicted_value is defined %}
+      <!-- ── Predict mode ── -->
+      <div class="result-card card-predict">
+        <div class="player-row">
+          <div class="player-avatar">{{ r.player[:2] if r.player else "??" }}</div>
+          <div>
+            <span class="player-name">{{ r.player }}</span>
+            <span class="mode-tag tag-ml">PREDICT</span>
+          </div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-val val-gold">{{ r.predicted_value }}</div>
+            <div class="stat-label">{{ r.target_label }}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val small val-blue">Random Forest</div>
+            <div class="stat-label">Algorithm</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val small val-muted">ML Model</div>
+            <div class="stat-label">Mode</div>
+          </div>
+        </div>
+        <div class="interpret-banner">&#9656; {{ r.message }}</div>
+      </div>
+
+    {% elif r.performance is defined %}
+      <!-- ── Analyze mode ── -->
+      {% set is_above = r.performance == "Above Average" %}
+      <div class="result-card {{ 'card-above' if is_above else 'card-below' }}">
+
+        <div class="player-row">
+          <div class="player-avatar">{{ r.player[:2] if r.player else "??" }}</div>
+          <div>
+            <span class="player-name">{{ r.player }}</span>
+            <span class="mode-tag tag-stat">ANALYZE</span>
+          </div>
+        </div>
+
+        <div class="perf-banner {{ 'above' if is_above else 'below' }}">
+          <div class="perf-icon {{ 'above' if is_above else 'below' }}">{{ '▲' if is_above else '▼' }}</div>
+          <div class="perf-text-wrap">
+            <span class="perf-text {{ 'above' if is_above else 'below' }}">
+              {{ r.performance }} &nbsp;·&nbsp; Score: {{ r.score }}
+            </span>
+            <span class="perf-message">{{ r.message }}</span>
+          </div>
+        </div>
+
+        {% if r.strong_stats %}
+          <div class="breakdown-title">Strong Stats</div>
+          <div class="tag-row">
+            {% for s in r.strong_stats %}<span class="stat-tag strong">▲ {{ s }}</span>{% endfor %}
+          </div>
+        {% endif %}
+        {% if r.weak_stats %}
+          <div class="breakdown-title">Weak Stats</div>
+          <div class="tag-row">
+            {% for s in r.weak_stats %}<span class="stat-tag weak">▼ {{ s }}</span>{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="divider"></div>
+
+        <!-- Two-column layout on wider screens: breakdown left, chart right -->
+        <div class="analyze-body">
+          <div class="breakdown-col">
+            <div class="breakdown-title">Metric Breakdown</div>
+            {% set detail_items = r.details.split(' | ') %}
+            {% for item in detail_items %}
+              {% set arrow = item[0] %}
+              {% set rest  = item[2:] %}
+              {% set is_deaths = 'Deaths' in rest %}
+              <div class="metric-row">
+                <div class="metric-left">
+                  <span class="metric-arrow {{ 'up' if arrow == '▲' else ('down' if arrow == '▼' else 'neu') }}">{{ arrow }}</span>
+                  <span class="metric-name">{{ rest.split(':')[0] }}</span>
+                  {% if is_deaths %}<span class="metric-inverse-tag">inverse</span>{% endif %}
+                </div>
+                <div class="metric-right">
+                  <span class="metric-player">{{ rest.split(': ')[1].split(' (')[0] if ': ' in rest else '' }}</span>
+                  <span class="metric-avg">avg {{ rest.split('avg ')[1].rstrip(')') if 'avg ' in rest else '' }}</span>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          {% if r.graph %}
+          <div class="chart-col">
+            <div class="breakdown-title">Player vs Dataset Average</div>
+            <div class="chart-wrap">
+              <canvas id="chart-{{ loop.index }}"></canvas>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if r.improvements %}
+          <div class="divider"></div>
+          <div class="breakdown-title">Improvement Suggestions</div>
+          {% for tip in r.improvements %}
+            <div class="tip-row">
+              <span class="tip-bullet">&#9658;</span>
+              <span class="tip-text">{{ tip }}</span>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        {% if r.graph %}
+        <script>
+          (function() {
+            var ctx = document.getElementById('chart-{{ loop.index }}').getContext('2d');
+            new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: {{ r.graph.labels | tojson }},
+                datasets: [
+                  {
+                    label: '{{ r.player }}',
+                    data: {{ r.graph.player_values | tojson }},
+                    backgroundColor: 'rgba(92,138,245,0.7)',
+                    borderColor: '#5c8af5', borderWidth: 1, borderRadius: 2,
+                  },
+                  {
+                    label: 'Dataset Average',
+                    data: {{ r.graph.avg_values | tojson }},
+                    backgroundColor: 'rgba(232,160,32,0.4)',
+                    borderColor: '#e8a020', borderWidth: 1, borderRadius: 2,
+                  }
+                ]
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  legend: {
+                    labels: {
+                      color: '#7a8a9a',
+                      font: { family: "'Share Tech Mono', monospace", size: 10 },
+                      boxWidth: 12,
+                    }
+                  },
+                  tooltip: {
+                    backgroundColor: '#0e1318', borderColor: '#1e2a38', borderWidth: 1,
+                    titleColor: '#e8e8e8', bodyColor: '#a8b8c8',
+                    titleFont: { family: "'Share Tech Mono', monospace" },
+                    bodyFont:  { family: "'Share Tech Mono', monospace" },
+                  }
+                },
+                scales: {
+                  x: {
+                    ticks: { color: '#7a8a9a', font: { family: "'Share Tech Mono', monospace", size: 9 } },
+                    grid:  { color: '#1a2430' }
+                  },
+                  y: {
+                    ticks: { color: '#7a8a9a', font: { family: "'Share Tech Mono', monospace", size: 9 } },
+                    grid:  { color: '#1a2430' }
+                  }
+                }
+              }
+            });
+          })();
+        </script>
+        {% endif %}
+
+      </div>
+    {% endif %}
+
+  {% endfor %}
+  </div><!-- /.results-grid -->
+
+  <a href="/" class="back-btn">&#8592; Back to Input</a>
+
+  <div class="footer-line">
+    <span><span class="status-dot"></span>Analysis Complete</span>
+    <span>Player Analytics v1.0</span>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+flask==3.0.3
+ray==2.55.0
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.5.1
+
+# Supporting dependencies (important)
+joblib==1.4.2
+threadpoolctl==3.5.0
+python-dateutil==2.9.0
+pytz==2024.1
+six==1.16.0
+
+# Optional (recommended for deployment)
+gunicorn==22.0.0
